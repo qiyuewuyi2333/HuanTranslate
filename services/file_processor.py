@@ -11,8 +11,8 @@ class FileProcessor:
         return "Word文本内容"
 
     def extract_text_from_markdown(self, file_path: str) -> str:
-        # 伪代码，实际应解析Markdown
-        return "Markdown文本内容"
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
 
     def save_text_to_word(self, text: str, out_path: str):
         doc = Document()

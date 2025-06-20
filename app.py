@@ -46,9 +46,9 @@ def upload():
         provider = request.form.get('provider', 'google')
         source_lang = request.form.get('source_lang', 'auto')
         target_lang = request.form.get('target_lang', 'zh')
-        if not file:
+        if not file or not file.filename:
             return {'error': '未上传文件'}, 400
-        filename = secure_filename(file.filename)
+        filename = secure_filename(str(file.filename))
         file_path = os.path.join(UPLOAD_FOLDER, filename)
         file.save(file_path)
         ext = filename.rsplit('.', 1)[-1].lower()
@@ -70,7 +70,8 @@ def upload():
             translated_segments.append(translated)
         translated_text = '\n'.join(translated_segments)
         # 生成翻译后文件
-        out_filename = f"translated_{filename}"
+        out_filename = filename
+        
         out_path = os.path.join(UPLOAD_FOLDER, out_filename)
         if ext == 'pdf':
             file_processor.save_text_to_pdf(translated_text, out_path)

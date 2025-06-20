@@ -76,6 +76,7 @@
   </style>
 </head>
 <body>
+  {% raw %}
   <div id="app">
     <el-header style="display:flex;align-items:center;justify-content:space-between;padding:0 0 0 8px;">
       <span style="font-weight:bold;color:#409EFF;letter-spacing:2px;">📄 文件翻译</span>
@@ -100,22 +101,23 @@
         <div class="el-upload__tip" style="color:#888;">支持PDF、Word、Markdown、图片等格式</div>
       </el-upload>
       <div v-if="file" class="file-info animate__animated animate__fadeInUp">
-        <b>文件名：</b><span v-text="file ? file.name : ''"></span><br>
-        <b>类型：</b><span v-text="file ? (file.type ? file.type : '未知') : ''"></span><br>
-        <b>大小：</b><span v-text="file ? (file.size/1024).toFixed(2) + ' KB' : ''"></span>
+        <b>文件名：</b><span>{{ file.name || (file.raw && file.raw.name) || '' }}</span><br>
+        <b>类型：</b><span>{{ fileTypeLabel }}</span><br>
+        <b>大小：</b><span>{{ ((file.size || (file.raw && file.raw.size) || 0)/1024).toFixed(2) + ' KB' }}</span>
         <el-button size="small" type="danger" @click="removeFile" style="float:right;">移除</el-button>
       </div>
       <el-button type="primary" :disabled="!file || loading" @click="onTranslate" size="large" round style="margin-top:10px;">翻译文件</el-button>
-      <el-button v-if="downloadUrl" type="success" :href="downloadUrl" target="_blank" size="large" round style="margin-top:10px;">下载翻译文件</el-button>
+      <a v-if="downloadUrl" :href="downloadUrl" download class="el-button el-button--success" style="margin-top:10px;display:inline-block;font-size:16px;border-radius:20px;padding:10px 32px;text-align:center;">下载翻译文件</a>
       <el-divider></el-divider>
       <div v-if="result" class="result-box animate__animated animate__fadeInUp">
         <b>翻译结果：</b><br>{{ result }}
       </div>
     </div>
     <el-footer>
-      <span>© 2024 AI翻译工具 | <el-link href="/" type="primary" :underline="false">文本翻译</el-link> | <el-link href="/config" type="primary" :underline="false">API配置</el-link></span>
+        <span>© 2025 Qiyuewuyi</span>
     </el-footer>
   </div>
+  {% endraw %}
   <script>
     const { createApp } = Vue;
     const { ElMessage } = ElementPlus;
@@ -128,9 +130,24 @@
           downloadUrl: ''
         }
       },
+      computed: {
+        fileTypeLabel() {
+          if (!this.file) return '';
+          // 兼容el-upload的file对象和原生File对象
+          const type = this.file.type || this.file.raw?.type || '';
+          if (type) return type;
+          const name = this.file.name || this.file.raw?.name || '';
+          const ext = name.split('.').pop().toLowerCase();
+          if (ext === 'pdf') return 'PDF 文档';
+          if (ext === 'docx') return 'Word 文档';
+          if (ext === 'md') return 'Markdown 文档';
+          if (["jpg","jpeg","png"].includes(ext)) return '图片';
+          return '未知类型';
+        }
+      },
       methods: {
         handleFileChange(file) {
-          this.file = file.raw;
+          this.file = file; // 存完整el-upload文件对象
           this.result = '';
           this.downloadUrl = '';
         },
@@ -149,7 +166,7 @@
           this.downloadUrl = '';
           try {
             const formData = new FormData();
-            formData.append('file', this.file);
+            formData.append('file', this.file.raw || this.file);
             const resp = await fetch('/upload', {
               method: 'POST',
               body: formData
