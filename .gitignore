@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.env
+*.venv
+venv/
+env/
+ENV/
+
+# Flask
+instance/
+.webassets-cache
+
+# 数据库/临时文件
+*.db
+*.sqlite3
+uploads/
+
+# VSCode/IDE
+.vscode/
+.idea/
+*.swp
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# 日志
+*.log
+
+# 其他
+*.bak 

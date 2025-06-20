@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>API配置 - AI翻译工具</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <script src="https://unpkg.com/element-plus"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <style>
+        body {
+            background: linear-gradient(135deg, #e0e7ff 0%, #f5f7fa 100%);
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        }
+        #app {
+            max-width: 500px;
+            margin: 40px auto 0 auto;
+            padding: 0 8px;
+        }
+        .main-card {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+            padding: 32px 24px 24px 24px;
+            margin-top: 32px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .el-header {
+            background: none;
+            color: #409EFF;
+            text-align: left;
+            font-size: 2.1em;
+            letter-spacing: 2px;
+            font-weight: bold;
+            margin-bottom: 0;
+            padding: 0;
+        }
+        .el-footer {
+            text-align: center;
+            color: #888;
+            margin-top: 32px;
+            font-size: 1em;
+        }
+        .el-link { font-size: 1.1em; }
+        .el-form-item__label { font-weight: 500; }
+        .el-button--primary { background: linear-gradient(90deg, #409EFF 0%, #66b1ff 100%); border: none; }
+        .api-key-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+        .api-key-row .el-input { flex: 1; }
+        @media (max-width: 600px) {
+            #app { max-width: 98vw; margin: 10px; padding: 4px; }
+            .main-card { padding: 12px 2px; }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <el-header style="display:flex;align-items:center;justify-content:space-between;padding:0 0 0 8px;">
+            <span style="font-weight:bold;color:#409EFF;letter-spacing:2px;">🔑 API配置</span>
+            <div style="display:flex;gap:18px;">
+                <el-link href="/" type="primary" :underline="false" style="font-size:1.15em;font-weight:600;background:#e3f0ff;padding:8px 20px;border-radius:10px;box-shadow:0 2px 8px #409eff22;">文本翻译</el-link>
+                <el-link href="/upload" type="primary" :underline="false" style="font-size:1.15em;font-weight:600;background:#e3f0ff;padding:8px 20px;border-radius:10px;box-shadow:0 2px 8px #409eff22;">文件翻译</el-link>
+            </div>
+        </el-header>
+        
+        <div class="main-card animate__animated animate__fadeIn">
+            <el-form :model="form" label-width="100px" @submit.prevent="onSave">
+                <el-form-item label="服务商">
+                    <el-select v-model="form.provider" placeholder="请选择">
+                        <el-option label="DeepSeek" value="deepseek"></el-option>
+                        <el-option label="OpenAI" value="openai"></el-option>
+                        <el-option label="Claude" value="claude"></el-option>
+                    </el-select>
+                </el-form-item>
+                <el-form-item label="API Key">
+                    <div class="api-key-row">
+                        <el-input :type="showKey ? 'text' : 'password'" v-model="form.api_key" placeholder="请输入API Key"></el-input>
+                        <el-button @click="showKey = !showKey" size="small" style="margin-left:4px;">
+                            <span v-if="showKey">隐藏</span>
+                            <span v-else>显示</span>
+                        </el-button>
+                    </div>
+                </el-form-item>
+                <el-form-item label="Base URL">
+                    <el-input v-model="form.base_url" placeholder="如 https://api.deepseek.com/v1/chat/completions"></el-input>
+                </el-form-item>
+                <el-form-item>
+                    <el-button type="primary" @click="onSave" size="large" round>保存配置</el-button>
+                </el-form-item>
+            </el-form>
+            <el-alert v-if="success" title="保存成功！" type="success" show-icon :closable="false" class="animate__animated animate__fadeInUp" style="margin-top:18px;"/>
+        </div>
+        <el-footer>
+            <span>© 2024 AI翻译工具 | <el-link href="/" type="primary" :underline="false">文本翻译</el-link> | <el-link href="/upload" type="primary" :underline="false">文件翻译</el-link></span>
+        </el-footer>
+    </div>
+    <script>
+        const { createApp } = Vue;
+        const { ElMessage } = ElementPlus;
+        createApp({
+            data() {
+                return {
+                    form: {
+                        provider: 'deepseek',
+                        api_key: '',
+                        base_url: ''
+                    },
+                    showKey: false,
+                    success: false
+                }
+            },
+            methods: {
+                async onSave() {
+                    if (!this.form.provider || !this.form.api_key) {
+                        ElMessage.error('请填写完整信息');
+                        return;
+                    }
+                    this.success = false;
+                    try {
+                        const resp = await fetch('/config', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: new URLSearchParams(this.form)
+                        });
+                        if (resp.redirected) {
+                            this.success = true;
+                            ElMessage.success('保存成功！');
+                            this.form.api_key = '';
+                        } else {
+                            ElMessage.error('保存失败');
+                        }
+                    } catch (e) {
+                        ElMessage.error('请求失败');
+                    }
+                }
+            }
+        }).use(ElementPlus).mount('#app');
+    </script>
+</body>
+</html>

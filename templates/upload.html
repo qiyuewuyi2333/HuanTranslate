@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>文件翻译 - AI翻译工具</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+  <script src="https://unpkg.com/element-plus"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <style>
+    body {
+      background: linear-gradient(135deg, #e0e7ff 0%, #f5f7fa 100%);
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    }
+    #app {
+      max-width: 600px;
+      margin: 40px auto 0 auto;
+      padding: 0 8px;
+    }
+    .main-card {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+      padding: 32px 24px 24px 24px;
+      margin-top: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .el-header {
+      background: none;
+      color: #409EFF;
+      text-align: left;
+      font-size: 2.1em;
+      letter-spacing: 2px;
+      font-weight: bold;
+      margin-bottom: 0;
+      padding: 0;
+    }
+    .el-footer {
+      text-align: center;
+      color: #888;
+      margin-top: 32px;
+      font-size: 1em;
+    }
+    .el-link { font-size: 1.1em; }
+    .file-info {
+      margin: 18px 0 8px 0;
+      background: #f4f8fb;
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-size: 1.08em;
+      color: #333;
+      width: 100%;
+      word-break: break-all;
+    }
+    .result-box {
+      background: #f8fafc;
+      border-radius: 8px;
+      min-height: 80px;
+      padding: 12px;
+      font-size: 1.08em;
+      color: #222;
+      margin-top: 12px;
+      word-break: break-all;
+      white-space: pre-wrap;
+      box-shadow: 0 2px 8px rgba(64,158,255,0.06);
+    }
+    @media (max-width: 700px) {
+      #app { max-width: 98vw; margin: 10px; padding: 4px; }
+      .main-card { padding: 12px 2px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <el-header style="display:flex;align-items:center;justify-content:space-between;padding:0 0 0 8px;">
+      <span style="font-weight:bold;color:#409EFF;letter-spacing:2px;">📄 文件翻译</span>
+      <div style="display:flex;gap:18px;">
+        <el-link href="/" type="primary" :underline="false" style="font-size:1.15em;font-weight:600;background:#e3f0ff;padding:8px 20px;border-radius:10px;box-shadow:0 2px 8px #409eff22;">文本翻译</el-link>
+        <el-link href="/config" type="primary" :underline="false" style="font-size:1.15em;font-weight:600;background:#e3f0ff;padding:8px 20px;border-radius:10px;box-shadow:0 2px 8px #409eff22;">API配置</el-link>
+      </div>
+    </el-header>
+    <div class="main-card animate__animated animate__fadeIn">
+      <el-upload
+        class="upload-demo"
+        drag
+        action="#"
+        :auto-upload="false"
+        :show-file-list="false"
+        :on-change="handleFileChange"
+        accept=".pdf,.docx,.md,.jpg,.png"
+        style="width:100%;"
+      >
+        <i class="el-icon-upload" style="font-size:2.5em;color:#409EFF;"></i>
+        <div class="el-upload__text">将文件拖到此处，或 <em>点击上传</em></div>
+        <div class="el-upload__tip" style="color:#888;">支持PDF、Word、Markdown、图片等格式</div>
+      </el-upload>
+      <div v-if="file" class="file-info animate__animated animate__fadeInUp">
+        <b>文件名：</b><span v-text="file ? file.name : ''"></span><br>
+        <b>类型：</b><span v-text="file ? (file.type ? file.type : '未知') : ''"></span><br>
+        <b>大小：</b><span v-text="file ? (file.size/1024).toFixed(2) + ' KB' : ''"></span>
+        <el-button size="small" type="danger" @click="removeFile" style="float:right;">移除</el-button>
+      </div>
+      <el-button type="primary" :disabled="!file || loading" @click="onTranslate" size="large" round style="margin-top:10px;">翻译文件</el-button>
+      <el-button v-if="downloadUrl" type="success" :href="downloadUrl" target="_blank" size="large" round style="margin-top:10px;">下载翻译文件</el-button>
+      <el-divider></el-divider>
+      <div v-if="result" class="result-box animate__animated animate__fadeInUp">
+        <b>翻译结果：</b><br>{{ result }}
+      </div>
+    </div>
+    <el-footer>
+      <span>© 2024 AI翻译工具 | <el-link href="/" type="primary" :underline="false">文本翻译</el-link> | <el-link href="/config" type="primary" :underline="false">API配置</el-link></span>
+    </el-footer>
+  </div>
+  <script>
+    const { createApp } = Vue;
+    const { ElMessage } = ElementPlus;
+    createApp({
+      data() {
+        return {
+          file: null,
+          result: '',
+          loading: false,
+          downloadUrl: ''
+        }
+      },
+      methods: {
+        handleFileChange(file) {
+          this.file = file.raw;
+          this.result = '';
+          this.downloadUrl = '';
+        },
+        removeFile() {
+          this.file = null;
+          this.result = '';
+          this.downloadUrl = '';
+        },
+        async onTranslate() {
+          if (!this.file) {
+            ElMessage.error('请先上传文件');
+            return;
+          }
+          this.loading = true;
+          this.result = '';
+          this.downloadUrl = '';
+          try {
+            const formData = new FormData();
+            formData.append('file', this.file);
+            const resp = await fetch('/upload', {
+              method: 'POST',
+              body: formData
+            });
+            const data = await resp.json();
+            if (data.download_url) {
+              this.downloadUrl = data.download_url;
+              ElMessage.success('翻译完成，可下载文件');
+            } else if (data.error) {
+              this.result = data.error;
+              ElMessage.error(data.error);
+            } else {
+              this.result = '翻译失败';
+              ElMessage.error('翻译失败');
+            }
+          } catch (e) {
+            ElMessage.error('请求失败');
+          }
+          this.loading = false;
+        }
+      }
+    }).use(ElementPlus).mount('#app');
+  </script>
+</body>
+</html>

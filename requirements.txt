@@ -1,0 +1,10 @@
+flask
+requests
+werkzeug
+python-docx
+fpdf
+pdfplumber
+markdown
+pytesseract
+pillow
+langdetect

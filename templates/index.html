@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>AI翻译工具</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+  <script src="https://unpkg.com/element-plus"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+  <style>
+    body {
+      background: linear-gradient(135deg, #e0e7ff 0%, #f5f7fa 100%);
+      min-height: 100vh;
+      margin: 0;
+      font-family: 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    }
+    #app {
+      max-width: 980px;
+      margin: 40px auto 0 auto;
+      padding: 0 8px;
+    }
+    .main-card {
+      background: #fff;
+      border-radius: 18px;
+      box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+      padding: 32px 24px 24px 24px;
+      margin-top: 32px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .translate-panel {
+      display: flex;
+      flex-direction: row;
+      gap: 24px;
+      width: 100%;
+      max-width: 860px;
+      min-height: 320px;
+      margin: 0 auto;
+      background: #f8fafc;
+      border-radius: 14px;
+      box-shadow: 0 2px 8px rgba(64,158,255,0.06);
+      padding: 24px 16px;
+      align-items: flex-start;
+    }
+    .lang-select {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .swap-btn {
+      background: #f0f4fa;
+      border: none;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .swap-btn:hover {
+      background: #e0e7ff;
+    }
+    .input-area, .output-area {
+      flex: 1 1 0;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 120px;
+      justify-content: flex-start;
+      height: auto;
+    }
+    .output-box {
+      background: #f4f8fb;
+      border-radius: 8px;
+      min-height: 120px;
+      padding: 12px;
+      font-size: 1.15em;
+      color: #222;
+      margin-bottom: 8px;
+      word-break: break-all;
+      white-space: pre-wrap;
+      transition: background 0.2s;
+      max-height: 600px;
+      overflow-y: auto;
+      box-sizing: border-box;
+      border: 1.5px solid #b3c6e0;
+    }
+    .action-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .el-header {
+      background: none;
+      color: #409EFF;
+      text-align: left;
+      font-size: 2.1em;
+      letter-spacing: 2px;
+      font-weight: bold;
+      margin-bottom: 0;
+      padding: 0;
+    }
+    .el-footer {
+      text-align: center;
+      color: #888;
+      margin-top: 32px;
+      font-size: 1em;
+    }
+    @media (max-width: 900px) {
+      .translate-panel { flex-direction: column; gap: 12px; padding: 12px 4px; }
+      .main-card { padding: 16px 4px; }
+    }
+    .provider-row {
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .provider-row .el-select { min-width: 140px; }
+    .provider-row .el-link { font-size: 1em; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <el-header style="display:flex;align-items:center;justify-content:space-between;padding:0 0 0 8px;">
+      <span style="font-weight:bold;color:#409EFF;letter-spacing:2px;">🌏 AI翻译工具</span>
+      <div style="display:flex;gap:18px;">
+        <el-link href="/upload" type="primary" :underline="false" style="font-size:1.15em;font-weight:600;background:#e3f0ff;padding:8px 20px;border-radius:10px;box-shadow:0 2px 8px #409eff22;">📄 文件翻译</el-link>
+        <el-link href="/config" type="primary" :underline="false" style="font-size:1.15em;font-weight:600;background:#e3f0ff;padding:8px 20px;border-radius:10px;box-shadow:0 2px 8px #409eff22;">⚙️ API配置</el-link>
+      </div>
+    </el-header>
+    <div class="main-card animate__animated animate__fadeIn">
+      <div class="provider-row">
+        <el-select v-model="form.provider" placeholder="选择服务商">
+          <el-option label="谷歌翻译" value="google"></el-option>
+          <el-option label="DeepSeek" value="deepseek"></el-option>
+          <el-option label="ChatGPT" value="openai"></el-option>
+        </el-select>
+      </div>
+      <div class="translate-panel animate__animated animate__fadeInUp">
+        <div class="input-area">
+          <div class="lang-select">
+            <el-select v-model="form.source_lang" placeholder="源语言" size="large">
+              <el-option label="自动检测" value="auto"></el-option>
+              <el-option label="中文" value="zh"></el-option>
+              <el-option label="英文" value="en"></el-option>
+              <el-option label="日文" value="ja"></el-option>
+            </el-select>
+            <button class="swap-btn" @click="swapLangs" title="互换语言"><svg width="20" height="20" fill="#409EFF" viewBox="0 0 24 24"><path d="M7.41 13.41 6 12l-6 6 6 6 1.41-1.41L3.83 19H20v-2H3.83l3.58-3.59zM17 6.41 18.41 5 24 10.59 18.41 16 17 14.59 20.59 11H4V9h16.59L17 6.41z"></path></svg></button>
+            <el-select v-model="form.target_lang" placeholder="目标语言" size="large">
+              <el-option label="中文" value="zh"></el-option>
+              <el-option label="英文" value="en"></el-option>
+              <el-option label="日文" value="ja"></el-option>
+            </el-select>
+          </div>
+          <el-input
+            type="textarea"
+            v-model="form.text"
+            :rows="7"
+            placeholder="请输入要翻译的内容"
+            style="margin-bottom:8px;"
+            autosize
+            class="animate__animated animate__fadeInUp"
+          ></el-input>
+          <div class="action-row">
+            <el-button type="primary" @click="onTranslate" :loading="loading" size="large" round icon="el-icon-connection">翻译</el-button>
+            <el-button @click="form.text=''" size="large" round>清空</el-button>
+          </div>
+        </div>
+        <div class="output-area">
+          <div class="output-box animate__animated animate__fadeInUp" v-if="translatedText" v-text="translatedText"></div>
+          <div v-else class="output-box" style="color:#bbb;">翻译结果将在此显示</div>
+          <div class="action-row" v-if="translatedText">
+            <el-button @click="copyResult" size="large" round>复制结果</el-button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <el-footer>
+      <span>© 2025 Qiyuewuyi</span>
+    </el-footer>
+  </div>
+  <script>
+    const { createApp } = Vue;
+    const { ElMessage } = ElementPlus;
+    createApp({
+      data() {
+        return {
+          form: {
+            provider: 'google',
+            source_lang: 'auto',
+            target_lang: 'zh',
+            text: ''
+          },
+          translatedText: '',
+          loading: false
+        }
+      },
+      methods: {
+        swapLangs() {
+          if(this.form.source_lang === 'auto') return;
+          const tmp = this.form.source_lang;
+          this.form.source_lang = this.form.target_lang;
+          this.form.target_lang = tmp;
+        },
+        async onTranslate() {
+          if (!this.form.text) {
+            ElMessage.error('请输入要翻译的内容');
+            return;
+          }
+          this.loading = true;
+          try {
+            const resp = await fetch('/translate', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+              },
+              body: new URLSearchParams(this.form)
+            });
+            const data = await resp.json();
+            this.translatedText = data.translated_text || '翻译失败';
+          } catch (e) {
+            ElMessage.error('请求失败');
+          }
+          this.loading = false;
+        },
+        copyResult() {
+          if (!this.translatedText) return;
+          navigator.clipboard.writeText(this.translatedText);
+          ElMessage.success('已复制到剪贴板');
+        }
+      }
+    }).use(ElementPlus).mount('#app');
+  </script>
+</body>
+</html>
