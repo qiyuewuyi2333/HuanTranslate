@@ -93,12 +93,12 @@
         :auto-upload="false"
         :show-file-list="false"
         :on-change="handleFileChange"
-        accept=".pdf,.docx,.md,.jpg,.png"
+        accept=".pdf,.docx,.md"
         style="width:100%;"
       >
         <i class="el-icon-upload" style="font-size:2.5em;color:#409EFF;"></i>
         <div class="el-upload__text">将文件拖到此处，或 <em>点击上传</em></div>
-        <div class="el-upload__tip" style="color:#888;">支持PDF、Word、Markdown、图片等格式</div>
+        <div class="el-upload__tip" style="color:#888;">仅支持 Word(docx)、Markdown 文件，<span style='color:#e67e22;font-weight:bold;'>暂不支持PDF翻译</span></div>
       </el-upload>
       <div v-if="file" class="file-info animate__animated animate__fadeInUp">
         <b>文件名：</b><span>{{ file.name || (file.raw && file.raw.name) || '' }}</span><br>
@@ -148,16 +148,14 @@
       computed: {
         fileTypeLabel() {
           if (!this.file) return '';
-          // 兼容el-upload的file对象和原生File对象
-          const type = this.file.type || this.file.raw?.type || '';
-          if (type) return type;
           const name = this.file.name || this.file.raw?.name || '';
           const ext = name.split('.').pop().toLowerCase();
-          if (ext === 'pdf') return 'PDF 文档';
-          if (ext === 'docx') return 'Word 文档';
+          if (ext === 'pdf') return 'PDF 文件（暂不支持翻译）';
+          if (ext === 'docx') return 'Word 文档 (docx)';
           if (ext === 'md') return 'Markdown 文档';
-          if (["jpg","jpeg","png"].includes(ext)) return '图片';
-          return '未知类型';
+          const type = this.file.type || this.file.raw?.type || '';
+          if (type) return type;
+          return '不支持的类型';
         }
       },
       methods: {
